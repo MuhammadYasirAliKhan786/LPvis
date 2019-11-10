@@ -1,2 +1,7 @@
 geodata/timestacks/
 geodata/massrequest-fis-api.sh
+
+*.tar
+*.py[cod]
+__pcache__/
+.pytest_cache/
