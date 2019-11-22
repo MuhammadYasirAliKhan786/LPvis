@@ -152,8 +152,8 @@ def get_timestack():
         'Content-Type': 'application/json'
     }
 
-    date_start = request.args.get('date_start', '2017-11-01')
-    date_end = request.args.get('date_start', '2018-10-31')
+    date_start = request.args.get('date_start', '2018-03-15')
+    date_end = request.args.get('date_end', '2018-10-15')
     body = {
         'layer': 'NDVI',
         'crs'  : 'CRS:84',
