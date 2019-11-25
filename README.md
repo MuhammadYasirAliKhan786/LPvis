@@ -9,7 +9,7 @@ LPvis 🕺
 
 - connect to [Euro Data Cube Sentinel-Hub Service](https://hub.eox.at/marketplace?group=Euro%20Data%20Cube) to retrieve NDVI timestacks for a concrete LPIS parcel
 
-- ... (more to come)
+- use a trained Crop-Type classification ML (details to follow) to visualize "declaration" vs "classification result" for LPIS parcels
 
 ## Important
 
