@@ -24,6 +24,7 @@ COPY dependencies/. src/static/dependencies/.
 COPY geodata/. src/static/geodata/.
 COPY media/. src/static/media/.
 COPY util/. src/static/util/.
+COPY tiles/. src/static/tiles/.
 COPY main.js src/static/main.js
 COPY timestacks.js src/static/timestacks.js
 COPY style.css src/static/style.css

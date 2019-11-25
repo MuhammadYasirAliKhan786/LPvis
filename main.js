@@ -26,15 +26,15 @@ Visualize land parcels together with classification results
 
 /****** PARAMETERS ******/
 
-const AGRICULTURAL_PARCELS_URL_TEMPLATE = 'https://downloads.eox.at/lpvis_demo/agricultural_parcels/{z}/{x}/{y}.pbf'
-const PHYSICAL_BLOCKS_URL_TEMPLATE = 'https://downloads.eox.at/lpvis_demo/physical_blocks/{z}/{x}/{y}.pbf'
-const MUNICIPALITIES_URL_TEMPLATE = 'https://downloads.eox.at/lpvis_demo/municipalities/{z}/{x}/{y}.pbf'
+const AGRICULTURAL_PARCELS_URL_TEMPLATE = '/tiles/agricultural_parcels_unzipped/{z}/{x}/{y}'
+const PHYSICAL_BLOCKS_URL_TEMPLATE = '/tiles/physical_blocks_unzipped/{z}/{x}/{y}'
+//const MUNICIPALITIES_URL_TEMPLATE = '/tiles/municipalities_unzipped/{z}/{x}/{y}'
 
 // NUTS_LEVEL and NUTS_CODE_STARTS_WITH only apply to GeoJSONs from Eurostat's Nuts2json
 // https://github.com/eurostat/Nuts2json
 const NUTS_LEVEL = 2
 const NUTS_CODE_STARTS_WITH = 'AT'
-const NUTS2_GEOJSON_URL = 'geodata/nuts2_at.geojson' // OR: `https://raw.githubusercontent.com/eurostat/Nuts2json/gh-pages/2016/4258/10M/nutsrg_${NUTS_LEVEL}.json`
+const NUTS2_GEOJSON_URL = 'geodata/bounding_box_classification_20190723.geojson' // OR: `https://raw.githubusercontent.com/eurostat/Nuts2json/gh-pages/2016/4258/10M/nutsrg_${NUTS_LEVEL}.json`
 
 const AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER = 'ID'
 const PHYSICAL_BLOCKS_UNIQUE_IDENTIFIER = 'RFL_ID'
@@ -43,7 +43,7 @@ const SMALL_PARCELS_POINTS_UNIQUE_IDENTIFIER = 'id'
 
 const ORTHOPHOTO_URL_TEMPLATE = 'https://maps{s}.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpeg'
 
-const CONFIDENCE_THRESHOLD = 95
+const CONFIDENCE_THRESHOLD = 0.95
 const INITIAL_SWIPE_DISTANCE = 0.1
 
 
@@ -481,6 +481,7 @@ fetchJSON(NUTS2_GEOJSON_URL).then(data => {
   map.flyToBounds(nuts2.getBounds(), { duration: 2 })
 })
 
+/*
 const municipalities = L.vectorGrid.protobuf(MUNICIPALITIES_URL_TEMPLATE, {
   interactive: false,
   maxNativeZoom: 14,
@@ -495,7 +496,7 @@ const municipalities = L.vectorGrid.protobuf(MUNICIPALITIES_URL_TEMPLATE, {
   },
   attribution: 'Gemeinden { CC-BY-3.0 <a href="data.statistik.gv.at">Statistik Austria</a> }'
 }).addTo(map)
-
+*/
 
 /****** INIT LPIS LAYERS ******/
 /* Instead of Leaflet.VectorGrid we could use Leaflet.VectorTileLayer by Joachim Kuebart
@@ -555,7 +556,7 @@ agricultural_parcels.on('mouseover', e => {
   const attributes = e.propagatedFrom.properties
   agricultural_parcels.setTooltipContent(
     `ID: ${attributes[AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER]}<br>
-    Declaration: ${attributes['CT']}<br>
+    Declaration: ${attributes['SNAR_BEZEI']}<br>
     Conform: ${attributes.match === 'True' ? 'yes'
              : attributes.match === 'False' ? 'no'
              : 'not classified'}<br>
@@ -700,6 +701,55 @@ map.on('layerremove', e => {
     map.removeControl(legend_control)
   }
 })
+
+/* Dynamic Classification Results */
+let sum = 0
+let idset = new Set()
+let new_ids = new Set()
+
+function colorFeatures(idset) {
+  idset.forEach(id => {
+    agricultural_parcels.setFeatureStyle(id, {
+      weight: 0.3,
+      fill: true,
+      fillOpacity: 0.6,
+      fillColor: 'black',
+      color: 'black'
+    })
+  })
+}
+
+function setDiff(a,b) {
+  return new Set([...a].filter(x => !b.has(x)));
+}
+
+agricultural_parcels.on('loading', e => {
+  console.log('Start loading')
+  new_ids.clear()
+})
+
+agricultural_parcels.on('tileload', e => {
+  const key = agricultural_parcels._tileCoordsToKey(e.coords)
+  const tile_ids = Object.keys(agricultural_parcels._vectorTiles[key]._features)
+  new_ids = new Set([...new_ids, ...tile_ids]) // Union of new_ids and the ids of the loaded tile
+
+  sum += tile_ids.length
+  console.log('Setsize: ' + new_ids.size)
+  console.log('Sum of features: ' + sum)
+})
+
+agricultural_parcels.on('load', e => {
+  console.log('Finished loading')
+  const send_ids = setDiff(new_ids, idset) // prune new_ids (remove ids that we already have)
+  console.log(send_ids)
+  fetchJSON('geodata/classification_results.json')
+    .then(results =>
+      colorFeatures(send_ids)
+    )
+  idset = new Set([...send_ids, ...idset])
+})
+
+
 
 
 /****** CONTROLS ******/

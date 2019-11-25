@@ -111,7 +111,7 @@ function setFilterOnAllSidebarChildrenButOverlay(filter) {
   }
 }
 
-function ateSidebarOverlayAndReturnMessageDiv() {
+function createSidebarOverlayAndReturnMessageDiv() {
   setFilterOnAllSidebarChildrenButOverlay('blur(4px)')
 
   const som = document.querySelector('.sidebar-overlay-message')
