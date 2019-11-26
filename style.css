@@ -46,6 +46,14 @@ header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	background-color: #004170;
+	color: white;
+    padding-left: 170px;
+    background-image: url(https://cockpit.hub.eox.at/storage/uploads/2019/07/25/5d39b75d1c7e6EDC_logo_white.svg);
+    background-repeat: no-repeat;
+    background-size: 140px;
+    background-position-y: 16px;
+    background-position-x: 10px;
 }
 
 header h1 {
