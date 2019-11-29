@@ -41,6 +41,10 @@ const PHYSICAL_BLOCKS_UNIQUE_IDENTIFIER = 'RFL_ID'
 const SMALL_PARCELS_UNIQUE_IDENTIFIER = 'ID'
 const SMALL_PARCELS_POINTS_UNIQUE_IDENTIFIER = 'id'
 
+// parameter names of declaration and classification to be checked for match
+const AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM = "crop_id"
+const AGRICULTURAL_PARCELS_DECLARATION_PARAM = "CTnum"
+
 const ORTHOPHOTO_URL_TEMPLATE = 'https://maps{s}.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpeg'
 
 const CONFIDENCE_THRESHOLD = 0.95
@@ -557,8 +561,8 @@ agricultural_parcels.on('mouseover', e => {
   agricultural_parcels.setTooltipContent(
     `ID: ${attributes[AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER]}<br>
     Declaration: ${attributes['SNAR_BEZEI']}<br>
-    Conform: ${attributes.match === 'True' ? 'yes'
-             : attributes.match === 'False' ? 'no'
+    Conform: ${attributes.match === true ? 'yes'
+             : attributes.match === false ? 'no'
              : 'not classified'}<br>
     Confidence level: ${attributes.accuracy}${attributes.accuracy ? '%' : ''}`,
     { sticky:true })
@@ -710,16 +714,10 @@ let new_parcels = new Map()
 
 function colorFeatures(idmap) {
   idmap.forEach((parcel, id)  => {
-    const declared_ct_id = parcel.declared_ct_id
     const classification_results = parcel.classification_results
+    const tilekey = parcel.tilekey
     window.setTimeout(() => {
-      agricultural_parcels.setFeatureStyle(id,
-        trafficLightStyle(
-          true,//declared_ct_id === classification_results[0].crop_id,
-          classification_results[0].probability,
-          false
-        )
-      )},
+      updateFeatureWithClassificationResults(tilekey, id, classification_results)},
       2000)
   })
 }
@@ -730,6 +728,31 @@ function setDiff(a,b) {
 
 function mapDiff(a,b) {
   return new Map([...a].filter(x => !b.has(x[0])))
+}
+
+function updateFeatureWithClassificationResults(key, id, classification_result) {
+  const feature_properties = agricultural_parcels._vectorTiles[key]._features[id][0].feature.properties;
+  const declared_group = feature_properties[AGRICULTURAL_PARCELS_DECLARATION_PARAM];
+  if (classification_result[0]) {
+    feature_properties.match = (declared_group === classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM]);
+    feature_properties.accuracy = classification_result[0].probability;
+    feature_properties.classified_first_rank = classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+  }
+  if (classification_result[1]) {
+    feature_properties.classified_second_rank = classification_result[1][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+    feature_properties.accuracy_second_rank = classification_result[1].probability;
+  }
+  if (classification_result[2]) {
+    feature_properties.classified_third_rank = classification_result[2][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+    feature_properties.accuracy_third_rank = classification_result[2].probability;
+  }
+  agricultural_parcels.setFeatureStyle(id,
+     trafficLightStyle(
+      feature_properties.match,
+      feature_properties.accuracy,
+      false
+    )
+  )
 }
 
 // When tiles start loading
@@ -753,7 +776,7 @@ agricultural_parcels.on('load', e => {
     const features = agricultural_parcels._vectorTiles[key]._features
     const tile_parcels = new Map(Object.keys(features).map(id => {
       const properties = features[id][0].feature.properties
-      properties.tilekey = key // a feature might have multiple tilekeys if split over more than one tile
+      properties.tilekey = key // a feature might have multiple tilekeys if split over more than one tile, only latest tile gets updated
       return [Number(id), properties]
     }))
     new_parcels = new Map([...new_parcels, ...tile_parcels]) // later maps overwrite properties of earlier maps
