@@ -878,6 +878,12 @@ var overlays = {
 
 L.control.layers(baselayers, overlays).addTo(map)
 
+L.control.mousePosition({
+  separator: ', ',
+  numDigits: 3,
+  lngFirst: true,
+}).addTo(map);
+
 legend_control = L.control.custom({
   position: 'topright',
   classes: 'legend custom-control',
