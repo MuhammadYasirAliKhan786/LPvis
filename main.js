@@ -820,7 +820,7 @@ agricultural_parcels.on('load', e => {
   const pruned_parcels = mapDiff(new_parcels, parcel_map) // prune new_parcels (remove parcels that we already have)
   // console.log(pruned_parcels)
   const sent_ids = new Set(pruned_parcels.keys())
-  fetchClassificationApi(CLASSIFICATION_API_URL, [...sent_ids])
+  fetchClassificationApi(CLASSIFICATION_API_URL, { parcel_ids: [...sent_ids] })
     .then(results => {
       if (results) {
         results = new Map(results.filter(r => {
