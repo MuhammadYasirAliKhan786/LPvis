@@ -36,6 +36,8 @@ const NUTS_LEVEL = 2
 const NUTS_CODE_STARTS_WITH = 'AT'
 const NUTS2_GEOJSON_URL = 'geodata/bounding_box_classification_20190723.geojson' // OR: `https://raw.githubusercontent.com/eurostat/Nuts2json/gh-pages/2016/4258/10M/nutsrg_${NUTS_LEVEL}.json`
 
+const CLASSIFICATION_API_URL = '/predictions'
+
 const AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER = 'ID'
 const PHYSICAL_BLOCKS_UNIQUE_IDENTIFIER = 'RFL_ID'
 const SMALL_PARCELS_UNIQUE_IDENTIFIER = 'ID'
@@ -296,6 +298,22 @@ function fetchJSON(url) {
     .then(function(response) {
       return response.json();
     });
+}
+
+function fetchClassificationApi(url, ids) {
+  return fetch(url, {
+    method: 'post',
+    body: JSON.stringify(ids)
+  }).then(function(response){
+    if (!response.ok) {
+      throw Error(response.statusText);
+    }
+    return response;
+  }).then(function(response) {
+    return response.json()
+  }).catch(function(error) {
+    console.log(error);
+  })
 }
 
 function clearClickedFeatures() {
@@ -802,26 +820,28 @@ agricultural_parcels.on('load', e => {
   const pruned_parcels = mapDiff(new_parcels, parcel_map) // prune new_parcels (remove parcels that we already have)
   // console.log(pruned_parcels)
   const sent_ids = new Set(pruned_parcels.keys())
-  fetchJSON('geodata/classification_results.json') //mockup
+  fetchClassificationApi(CLASSIFICATION_API_URL, [...sent_ids])
     .then(results => {
-      results = new Map(results.filter(r => {
-            return pruned_parcels.has(r.parcel_id)
-        }).map(r => {
-          const parcel_id = r.parcel_id,
-                classification_results = r.classification_results,
-                properties = pruned_parcels.get(parcel_id)
+      if (results) {
+        results = new Map(results.filter(r => {
+              return pruned_parcels.has(r.parcel_id)
+          }).map(r => {
+            const parcel_id = r.parcel_id,
+                  classification_results = r.classification_results,
+                  properties = pruned_parcels.get(parcel_id)
 
-          return [parcel_id, {
-            'declared_ct_id': properties.Ctnum,
-            'classification_results': r.classification_results,
-            'tilekey': properties.tilekey
-        }]
-      }))
-      // console.log(results)
+            return [parcel_id, {
+              'declared_ct_id': properties.Ctnum,
+              'classification_results': r.classification_results,
+              'tilekey': properties.tilekey
+          }]
+        }))
+        // console.log(results)
 
-      colorFeatures(results)
-      parcel_map = new Map([...parcel_map, ...results])
-      console.log(parcel_map)
+        colorFeatures(results)
+        parcel_map = new Map([...parcel_map, ...results])
+        console.log(parcel_map)
+      }
   })
 })
 
