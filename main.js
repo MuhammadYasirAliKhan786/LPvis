@@ -68,7 +68,7 @@ const parcel_style_highlighted = {
 
 let clicked_features = []
 let timestack_mode = false
-let legend_control, nuts2, swipe_control, timestack_control, table
+let legend_control, nuts2, swipe_control, timestack_control, table, table_control, table_deletion_ref, currently_used_table_columns
 
 /****** CLASS MODIFICATIONS ******/
 
@@ -342,20 +342,13 @@ function initSwipeControl() {
 
 function initTable(attribute_labels) {
   if(L.Browser.mobile) return; // disable on mobile browsers
-
-  const table_control = new L. control.Table({}).addTo(map)
+  // make it global, so we can remove table later, when it should be updated
+  table_control = new L.control.Table({}).addTo(map)
   const table_container = table_control.getContainer()
   const button = document.createElement('button')
-
-  table = new Supagrid({
-    fields: attribute_labels,
-    id_field: AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER,
-    data: {} // to be filled later on click
-  })
-
-  table_control.addTable(table.supagrid, 'agricultural_parcels', 'Agricultural parcels')
+  currently_used_table_columns = attribute_labels
   table_container.onclick = e => e.stopPropagation() // to prevent click events on map, which clear table
-
+  table_deletion_ref = addTable(attribute_labels, table_control, 'agricultural_parcels', 'Agricultural parcels')
   button.classList.add('btn', 'download-btn')
   button.style.display = 'none'
   button.innerHTML = 'Export (CSV)'
@@ -369,6 +362,16 @@ function initTable(attribute_labels) {
       button.style.display = 'block'
     }
   })
+}
+
+function addTable(attribute_labels, tcl, rel, title) {
+  table = new Supagrid({
+    fields: attribute_labels,
+    id_field: AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER,
+    data: {} // to be filled later on click
+  })
+
+  return tcl.addTable(table.supagrid, rel, title)
 }
 
 function removeTooltipsFromMap() {
@@ -731,28 +734,40 @@ function mapDiff(a,b) {
 }
 
 function updateFeatureWithClassificationResults(key, id, classification_result) {
-  const feature_properties = agricultural_parcels._vectorTiles[key]._features[id][0].feature.properties;
-  const declared_group = feature_properties[AGRICULTURAL_PARCELS_DECLARATION_PARAM];
-  if (classification_result[0]) {
-    feature_properties.match = (declared_group === classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM]);
-    feature_properties.accuracy = classification_result[0].probability;
-    feature_properties.classified_first_rank = classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
-  }
-  if (classification_result[1]) {
-    feature_properties.classified_second_rank = classification_result[1][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
-    feature_properties.accuracy_second_rank = classification_result[1].probability;
-  }
-  if (classification_result[2]) {
-    feature_properties.classified_third_rank = classification_result[2][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
-    feature_properties.accuracy_third_rank = classification_result[2].probability;
-  }
-  agricultural_parcels.setFeatureStyle(id,
-     trafficLightStyle(
-      feature_properties.match,
-      feature_properties.accuracy,
-      false
+  if (agricultural_parcels._vectorTiles[key]) {
+    const feature_properties = agricultural_parcels._vectorTiles[key]._features[id][0].feature.properties;
+    const declared_group = feature_properties[AGRICULTURAL_PARCELS_DECLARATION_PARAM];
+    if (classification_result[0]) {
+      feature_properties.match = (declared_group === classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM]);
+      feature_properties.accuracy = classification_result[0].probability;
+      feature_properties.classified_first_rank = classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+    }
+    if (classification_result[1]) {
+      feature_properties.classified_second_rank = classification_result[1][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+      feature_properties.accuracy_second_rank = classification_result[1].probability;
+    }
+    if (classification_result[2]) {
+      feature_properties.classified_third_rank = classification_result[2][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+      feature_properties.accuracy_third_rank = classification_result[2].probability;
+    }
+    agricultural_parcels.setFeatureStyle(id,
+       trafficLightStyle(
+        feature_properties.match,
+        feature_properties.accuracy,
+        false
+      )
     )
-  )
+    const table_column_keys_new = Object.keys(feature_properties).filter(col_name => {
+      // filter out tilekey from table columns
+      return col_name !== 'tilekey'
+    })
+    if (!arraysEqualityCheck(currently_used_table_columns, table_column_keys_new)) {
+      // delete & add back table because columns changed after new data fetched
+      currently_used_table_columns = table_column_keys_new
+      table_control.removeTable(table_deletion_ref[0], table_deletion_ref[1])
+      table_deletion_ref = addTable(table_column_keys_new, table_control, 'agricultural_parcels', 'Agricultural parcels')
+    }
+  }
 }
 
 // When tiles start loading
