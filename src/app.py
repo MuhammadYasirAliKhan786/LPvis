@@ -1,9 +1,11 @@
-import json, os
+import json
+import os
 import logging
 import logging.config
 import oauthlib.oauth2
 import requests_oauthlib
-import json, os
+import json
+import os
 import psycopg2
 import requests
 import oauthlib.oauth2
@@ -46,6 +48,11 @@ logging.config.dictConfig({
             'level': 'DEBUG',
             'propagate': False,
         },
+        __name__: {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
         'oauthlib': {
             'handlers': ['console'],
             'level': 'DEBUG',
@@ -78,6 +85,14 @@ instances_url = 'https://services.sentinel-hub.com/configuration/v1/wms/instance
 fis_url_template = 'https://services.sentinel-hub.com/ogc/fis/{instance_id}'
 INSTANCE_ID = None
 
+
+def checkIds(parcel_ids):
+    # coerce IDS to integers and create a comma separated string for IN DB query
+    if isinstance(parcel_ids, int):
+        return str(parcel_ids)
+    return ','.join(map(str, [int(i) for i in parcel_ids]))
+
+
 def refresh_token(session):
     print('refreshing auth token')
     token_url = oauth2_url + '/token'
@@ -87,16 +102,18 @@ def refresh_token(session):
         client_secret=client_secret
     )
 
+
 def get_instance_id(session):
     print('fetching instance ID')
 
     response = session.get(instances_url)
     if not response.ok:
-        raise Exception('Failed to get instance ID, error was %s' % response.content)
+        raise Exception('Failed to get instance ID, error was %s' %
+                        response.content)
     instances = response.json()
     instance = None
     for instance in instances:
-        if instance['name'] =='Full WMS':
+        if instance['name'] == 'Full WMS':
             break
     else:
         raise Exception('No suitable WMS instance found')
@@ -156,8 +173,8 @@ def get_timestack():
     date_end = request.args.get('date_end', '2018-10-15')
     body = {
         'layer': 'NDVI',
-        'crs'  : 'CRS:84',
-        'time' : f'{date_start}/{date_end}',
+        'crs': 'CRS:84',
+        'time': f'{date_start}/{date_end}',
         'resolution': '10m',
         'geometry': wkt,
         'bins': 10,
@@ -176,13 +193,56 @@ def get_timestack():
         ).json()
     )
 
+
+@app.route('/predictions', methods=['GET', 'POST'])
+def predictions():
+    parcel_ids = {}
+    if request.method == 'GET':
+        parcel_ids = request.args['parcel_ids']
+    elif request.method == 'POST':
+        if not request.content_type == 'application/json':
+            return Response('Content-type must be application/json', status=400, mimetype='application/json')
+        try:
+            parcel_ids = request.json['parcel_ids']
+        except KeyError:
+            return Response('No "parcel_ids" attribute found', status=400, mimetype='application/json')
+    if (not parcel_ids):
+        return Response('"parcel_ids" attribute value is empty', status=400, mimetype='application/json')
+    conn = psycopg2.connect(host=db_host,
+                            database=db_database,
+                            port=db_port,
+                            user=db_user,
+                            password=db_password)
+    cur = conn.cursor()
+    cur.execute("SELECT parcel_id, prediction FROM classification_at WHERE parcel_id in (%s)" % checkIds(parcel_ids))
+    try:
+        classification_db_data = cur.fetchall()
+        logger.debug('Received data.')
+    except IndexError:
+        return Response(
+            json.dumps({
+                'error': 'no such parcels'
+            }),
+            content_type='application/json',
+            status=404
+        )
+    finally:
+        conn.close()
+        logger.debug('Connection closed.')
+    # return parcel_id and top three predictions
+    results_response = [{'parcel_id': result[0], 'classification_results': [result[1][0], result[1][1], result[1][2]]} for result in classification_db_data]
+    return jsonify(results_response)
+
+
 @app.route('/version')
 def get_version():
     return Response(response=f"{VERSION}")
 
+
 @app.route('/headers')
 def get_headers():
     return jsonify(dict(request.headers))
+
 
 @app.route('/')
 def get_home():

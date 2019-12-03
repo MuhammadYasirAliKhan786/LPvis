@@ -26,20 +26,26 @@ Visualize land parcels together with classification results
 
 /****** PARAMETERS ******/
 
-const AGRICULTURAL_PARCELS_URL_TEMPLATE = '/tiles/agricultural_parcels_unzipped/{z}/{x}/{y}'
-const PHYSICAL_BLOCKS_URL_TEMPLATE = '/tiles/physical_blocks_unzipped/{z}/{x}/{y}'
+const AGRICULTURAL_PARCELS_URL_TEMPLATE = '/tiles/agricultural_parcels_unzipped/{z}/{x}/{y}.pbf'
+const PHYSICAL_BLOCKS_URL_TEMPLATE = '/tiles/physical_blocks_unzipped/{z}/{x}/{y}.pbf'
 //const MUNICIPALITIES_URL_TEMPLATE = '/tiles/municipalities_unzipped/{z}/{x}/{y}'
 
 // NUTS_LEVEL and NUTS_CODE_STARTS_WITH only apply to GeoJSONs from Eurostat's Nuts2json
 // https://github.com/eurostat/Nuts2json
 const NUTS_LEVEL = 2
 const NUTS_CODE_STARTS_WITH = 'AT'
-const NUTS2_GEOJSON_URL = 'geodata/bounding_box_classification_20190723.geojson' // OR: `https://raw.githubusercontent.com/eurostat/Nuts2json/gh-pages/2016/4258/10M/nutsrg_${NUTS_LEVEL}.json`
+const NUTS2_GEOJSON_URL = 'geodata/bbox_classification_20191201.geojson' // OR: `https://raw.githubusercontent.com/eurostat/Nuts2json/gh-pages/2016/4258/10M/nutsrg_${NUTS_LEVEL}.json`
+
+const CLASSIFICATION_API_URL = '/predictions'
 
 const AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER = 'ID'
 const PHYSICAL_BLOCKS_UNIQUE_IDENTIFIER = 'RFL_ID'
 const SMALL_PARCELS_UNIQUE_IDENTIFIER = 'ID'
 const SMALL_PARCELS_POINTS_UNIQUE_IDENTIFIER = 'id'
+
+// parameter names of declaration and classification to be checked for match
+const AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM = "crop_id"
+const AGRICULTURAL_PARCELS_DECLARATION_PARAM = "CTnumL4A"
 
 const ORTHOPHOTO_URL_TEMPLATE = 'https://maps{s}.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpeg'
 
@@ -64,7 +70,7 @@ const parcel_style_highlighted = {
 
 let clicked_features = []
 let timestack_mode = false
-let legend_control, nuts2, swipe_control, timestack_control, table
+let legend_control, nuts2, swipe_control, timestack_control, table, table_control, table_deletion_ref, currently_used_table_columns
 
 /****** CLASS MODIFICATIONS ******/
 
@@ -294,6 +300,26 @@ function fetchJSON(url) {
     });
 }
 
+function fetchClassificationApi(url, ids) {
+  return fetch(url, {
+    method: 'post',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(ids)
+  }).then(function(response){
+    if (!response.ok) {
+      throw Error(response.statusText);
+    }
+    return response;
+  }).then(function(response) {
+    return response.json()
+  }).catch(function(error) {
+    console.log(error);
+  })
+}
+
 function clearClickedFeatures() {
   for(let f of clicked_features) agricultural_parcels.resetFeatureStyle(f[AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER])
   clicked_features = []
@@ -338,20 +364,13 @@ function initSwipeControl() {
 
 function initTable(attribute_labels) {
   if(L.Browser.mobile) return; // disable on mobile browsers
-
-  const table_control = new L. control.Table({}).addTo(map)
+  // make it global, so we can remove table later, when it should be updated
+  table_control = new L.control.Table({}).addTo(map)
   const table_container = table_control.getContainer()
   const button = document.createElement('button')
-
-  table = new Supagrid({
-    fields: attribute_labels,
-    id_field: AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER,
-    data: {} // to be filled later on click
-  })
-
-  table_control.addTable(table.supagrid, 'agricultural_parcels', 'Agricultural parcels')
+  currently_used_table_columns = attribute_labels
   table_container.onclick = e => e.stopPropagation() // to prevent click events on map, which clear table
-
+  table_deletion_ref = addTable(attribute_labels, table_control, 'agricultural_parcels', 'Agricultural parcels')
   button.classList.add('btn', 'download-btn')
   button.style.display = 'none'
   button.innerHTML = 'Export (CSV)'
@@ -367,6 +386,16 @@ function initTable(attribute_labels) {
   })
 }
 
+function addTable(attribute_labels, tcl, rel, title) {
+  table = new Supagrid({
+    fields: attribute_labels,
+    id_field: AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER,
+    data: {} // to be filled later on click
+  })
+
+  return tcl.addTable(table.supagrid, rel, title)
+}
+
 function removeTooltipsFromMap() {
   // source: https://gis.stackexchange.com/questions/254276/how-to-close-all-tooltips-defined-against-the-map-object
   map.eachLayer(function(layer) {
@@ -380,12 +409,12 @@ function trafficLightStyle (match, accuracy, is_highlighted) {
     color: 'yellow',
     ...(is_highlighted ? parcel_style_highlighted : parcel_style)
   }
-  else if (match === 'True') return {
+  else if (match === true) return {
     fillColor: 'green',
     color: 'green',
     ...(is_highlighted ? parcel_style_highlighted : parcel_style),
   }
-  else if (match === 'False') return {
+  else if (match === false) return {
     fillColor: 'red',
     color: 'red',
     ...(is_highlighted ? parcel_style_highlighted : parcel_style)
@@ -556,11 +585,11 @@ agricultural_parcels.on('mouseover', e => {
   const attributes = e.propagatedFrom.properties
   agricultural_parcels.setTooltipContent(
     `ID: ${attributes[AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER]}<br>
-    Declaration: ${attributes['SNAR_BEZEI']}<br>
-    Conform: ${attributes.match === 'True' ? 'yes'
-             : attributes.match === 'False' ? 'no'
+    Declaration: ${attributes['CT']}<br>
+    Conform: ${attributes.match === true ? 'yes'
+             : attributes.match === false ? 'no'
              : 'not classified'}<br>
-    Confidence level: ${attributes.accuracy}${attributes.accuracy ? '%' : ''}`,
+    Confidence level: ${typeof (attributes.accuracy) !== 'undefined' ? attributes.accuracy : 'not classified'}${attributes.accuracy ? '%' : ''}`,
     { sticky:true })
 })
 
@@ -704,18 +733,15 @@ map.on('layerremove', e => {
 
 /* Dynamic Classification Results */
 let sum = 0
-let idset = new Set()
-let new_ids = new Set()
+let parcel_map = new Map()
+let new_tile_keys = new Set()
+let new_parcels = new Map()
 
-function colorFeatures(idset) {
-  idset.forEach(id => {
-    agricultural_parcels.setFeatureStyle(id, {
-      weight: 0.3,
-      fill: true,
-      fillOpacity: 0.6,
-      fillColor: 'black',
-      color: 'black'
-    })
+function colorFeatures(idmap) {
+  idmap.forEach((parcel, id)  => {
+    const classification_results = parcel.classification_results
+    const tilekey = parcel.tilekey
+    updateFeatureWithClassificationResults(tilekey, id, classification_results)
   })
 }
 
@@ -723,30 +749,117 @@ function setDiff(a,b) {
   return new Set([...a].filter(x => !b.has(x)));
 }
 
+function mapDiff(a,b) {
+  return new Map([...a].filter(x => !b.has(x[0])))
+}
+
+function updateFeatureWithClassificationResults(key, id, classification_result) {
+  if (agricultural_parcels._vectorTiles[key]) {
+    const feature_properties = agricultural_parcels._vectorTiles[key]._features[id][0].feature.properties;
+    const declared_group = feature_properties[AGRICULTURAL_PARCELS_DECLARATION_PARAM];
+    if (classification_result[0]) {
+      feature_properties.match = (declared_group === classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM]);
+      feature_properties.accuracy = classification_result[0].probability;
+      feature_properties.classified_first_rank = classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+    }
+    if (classification_result[1]) {
+      feature_properties.classified_second_rank = classification_result[1][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+      feature_properties.accuracy_second_rank = classification_result[1].probability;
+    }
+    if (classification_result[2]) {
+      feature_properties.classified_third_rank = classification_result[2][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+      feature_properties.accuracy_third_rank = classification_result[2].probability;
+    }
+    agricultural_parcels.setFeatureStyle(id,
+       trafficLightStyle(
+        feature_properties.match,
+        feature_properties.accuracy,
+        false
+      )
+    )
+    const table_column_keys_new = Object.keys(feature_properties).filter(col_name => {
+      // filter out tilekey from table columns
+      return col_name !== 'tilekey'
+    })
+    if (!arraysEqualityCheck(currently_used_table_columns, table_column_keys_new)) {
+      // delete & add back table because columns changed after new data fetched
+      currently_used_table_columns = table_column_keys_new
+      table_control.removeTable(table_deletion_ref[0], table_deletion_ref[1])
+      table_deletion_ref = addTable(table_column_keys_new, table_control, 'agricultural_parcels', 'Agricultural parcels')
+    }
+  }
+}
+
+// When tiles start loading
 agricultural_parcels.on('loading', e => {
   console.log('Start loading')
-  new_ids.clear()
+  new_tile_keys.clear()
+  new_parcels.clear()
 })
 
+// When a tile has loaded
 agricultural_parcels.on('tileload', e => {
   const key = agricultural_parcels._tileCoordsToKey(e.coords)
-  const tile_ids = Object.keys(agricultural_parcels._vectorTiles[key]._features)
-  new_ids = new Set([...new_ids, ...tile_ids]) // Union of new_ids and the ids of the loaded tile
-
-  sum += tile_ids.length
-  console.log('Setsize: ' + new_ids.size)
-  console.log('Sum of features: ' + sum)
+  new_tile_keys.add(key)
 })
 
+// When layer has loaded all tiles
 agricultural_parcels.on('load', e => {
   console.log('Finished loading')
-  const send_ids = setDiff(new_ids, idset) // prune new_ids (remove ids that we already have)
-  console.log(send_ids)
-  fetchJSON('geodata/classification_results.json')
-    .then(results =>
-      colorFeatures(send_ids)
-    )
-  idset = new Set([...send_ids, ...idset])
+  // Get all new parcels
+  new_tile_keys.forEach(key => {
+    const features = agricultural_parcels._vectorTiles[key]._features
+    const tile_parcels = new Map(Object.keys(features).map(id => {
+      const properties = features[id][0].feature.properties
+      properties.tilekey = key // a feature might have multiple tilekeys if split over more than one tile, only latest tile gets updated
+      return [Number(id), properties]
+    }))
+    new_parcels = new Map([...new_parcels, ...tile_parcels]) // later maps overwrite properties of earlier maps
+  })
+
+
+  // Prune and send ids to service
+  const pruned_parcels = mapDiff(new_parcels, parcel_map) // prune new_parcels (remove parcels that we already have)
+  // console.log(pruned_parcels)
+  const sent_ids = new Set(pruned_parcels.keys())
+  fetchClassificationApi(CLASSIFICATION_API_URL, { parcel_ids: [...sent_ids] })
+    .then(results => {
+      if (results) {
+        results = new Map(results.filter(r => {
+              return pruned_parcels.has(r.parcel_id)
+          }).map(r => {
+            const parcel_id = r.parcel_id,
+                  classification_results = r.classification_results,
+                  properties = pruned_parcels.get(parcel_id)
+
+            return [parcel_id, {
+              'declared_ct_id': properties.Ctnum,
+              'classification_results': r.classification_results,
+              'tilekey': properties.tilekey
+          }]
+        }))
+        // console.log(results)
+
+        colorFeatures(results)
+        parcel_map = new Map([...parcel_map, ...results])
+        console.log(parcel_map)
+      }
+  })
+})
+
+agricultural_parcels.on('tileunload', e => {
+  console.log('Tile unloaded')
+  const key = agricultural_parcels._tileCoordsToKey(e.coords)
+  const removed_ids = new Set(Array.from(parcel_map.entries()).filter(p => {
+    return p[1].tilekey === key
+  }).map(p => {
+    return p[0]
+  }))
+  // console.log(removed_ids)
+  // remove ids even if they might still be in one of the displayed tiles.
+  // We can fetch the few again.
+  parcel_map = mapDiff(parcel_map, removed_ids)
+  console.log(parcel_map)
 })
 
 
@@ -766,6 +879,12 @@ var overlays = {
 }
 
 L.control.layers(baselayers, overlays).addTo(map)
+
+L.control.mousePosition({
+  separator: ', ',
+  numDigits: 3,
+  lngFirst: true,
+}).addTo(map);
 
 legend_control = L.control.custom({
   position: 'topright',

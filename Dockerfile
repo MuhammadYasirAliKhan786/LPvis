@@ -27,6 +27,7 @@ COPY util/. src/static/util/.
 COPY tiles/. src/static/tiles/.
 COPY main.js src/static/main.js
 COPY timestacks.js src/static/timestacks.js
+COPY utils.js src/static/utils.js
 COPY style.css src/static/style.css
 COPY index.html src/static/index.html
 

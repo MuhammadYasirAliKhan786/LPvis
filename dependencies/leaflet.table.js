@@ -21,7 +21,13 @@ L.control.Table = L.Control.extend({
     option.innerHTML=title;
     this.switcher.appendChild(option);
 
-    return table;
+    return [table, option];
+  },
+  
+  removeTable: function(table, option, rel) {
+    delete this.containers[rel];
+    this.tables.removeChild(table);
+    this.switcher.removeChild(option);
   },
 
   onAdd: function(map) {
