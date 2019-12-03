@@ -45,7 +45,7 @@ const SMALL_PARCELS_POINTS_UNIQUE_IDENTIFIER = 'id'
 
 // parameter names of declaration and classification to be checked for match
 const AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM = "crop_id"
-const AGRICULTURAL_PARCELS_DECLARATION_PARAM = "CTnum"
+const AGRICULTURAL_PARCELS_DECLARATION_PARAM = "CTnumL4A"
 
 const ORTHOPHOTO_URL_TEMPLATE = 'https://maps{s}.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpeg'
 
@@ -303,6 +303,10 @@ function fetchJSON(url) {
 function fetchClassificationApi(url, ids) {
   return fetch(url, {
     method: 'post',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify(ids)
   }).then(function(response){
     if (!response.ok) {

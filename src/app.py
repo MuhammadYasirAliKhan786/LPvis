@@ -48,6 +48,11 @@ logging.config.dictConfig({
             'level': 'DEBUG',
             'propagate': False,
         },
+        __name__: {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
         'oauthlib': {
             'handlers': ['console'],
             'level': 'DEBUG',
@@ -79,6 +84,13 @@ oauth2_url = 'https://services.sentinel-hub.com/oauth'
 instances_url = 'https://services.sentinel-hub.com/configuration/v1/wms/instances'
 fis_url_template = 'https://services.sentinel-hub.com/ogc/fis/{instance_id}'
 INSTANCE_ID = None
+
+
+def checkIds(parcel_ids):
+    # coerce IDS to integers and create a comma separated string for IN DB query
+    if isinstance(parcel_ids, int):
+        return str(parcel_ids)
+    return ','.join(map(str, [int(i) for i in parcel_ids]))
 
 
 def refresh_token(session):
@@ -182,58 +194,42 @@ def get_timestack():
     )
 
 
-MOCK_CLASSIFICATION_RESULTS = [
-    {
-        "crop_id": 110,
-        "probability": 0.98
-    },
-    {
-        "crop_id": 111,
-        "probability": 0.01
-    },
-    {
-        "crop_id": 112,
-        "probability": 0.01
-    },
-]
-
-
-@app.route('/predictions')
+@app.route('/predictions', methods=['GET', 'POST'])
 def predictions():
-    # conn = psycopg2.connect(host=db_host,
-    #                         database=db_database,
-    #                         port=db_port,
-    #                         user=db_user,
-    #                         password=db_password)
-    # cur = conn.cursor()
-
-    # print('Connection started.')
-
-    # cur.execute("SELECT ST_AsText(ST_Transform(geometry, 4326)) FROM lpis_at WHERE raba_pid=%(parcel_id)s", {
-    #     'parcel_id': request.args['parcel_id']
-    # })
-
-    # try:
-    #     wkt = cur.fetchall()[0][0]
-    #     print(wkt)
-    # except IndexError:
-    #     return Response(
-    #         json.dumps({
-    #             'error': 'no such parcel'
-    #         }),
-    #         content_type='application/json',
-    #         status=404
-    #     )
-    # finally:
-    #     conn.close()
-    #     print('Connection closed.')
-
-    parcel_ids = request.args['parcel_ids']
-
-    return jsonify({
-        parcel_id: MOCK_CLASSIFICATION_RESULTS
-        for parcel_id in parcel_ids
-    })
+    parcel_ids = {}
+    if request.method == 'GET':
+        parcel_ids = request.args['parcel_ids']
+    elif request.method == 'POST':
+        if not request.content_type == 'application/json':
+            return Response('Content-type must be application/json', status=401, mimetype='application/json')
+        try:
+            parcel_ids = request.json['parcel_ids']
+        except KeyError:
+            return Response('No "parcel_ids" attribute found', status=401, mimetype='application/json')
+    conn = psycopg2.connect(host=db_host,
+                            database=db_database,
+                            port=db_port,
+                            user=db_user,
+                            password=db_password)
+    cur = conn.cursor()
+    cur.execute("SELECT parcel_id, prediction FROM classification_at WHERE parcel_id in (%s)" % checkIds(parcel_ids))
+    try:
+        classification_db_data = cur.fetchall()
+        logger.debug('Received data.')
+    except IndexError:
+        return Response(
+            json.dumps({
+                'error': 'no such parcels'
+            }),
+            content_type='application/json',
+            status=404
+        )
+    finally:
+        conn.close()
+        logger.debug('Connection closed.')
+    # return parcel_id and top three predictions
+    results_response = [{'parcel_id': result[0], 'classification_results': [result[1][0], result[1][1], result[1][2]]} for result in classification_db_data]
+    return jsonify(results_response)
 
 
 @app.route('/version')
