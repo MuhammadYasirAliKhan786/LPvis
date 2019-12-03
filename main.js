@@ -585,11 +585,11 @@ agricultural_parcels.on('mouseover', e => {
   const attributes = e.propagatedFrom.properties
   agricultural_parcels.setTooltipContent(
     `ID: ${attributes[AGRICULTURAL_PARCELS_UNIQUE_IDENTIFIER]}<br>
-    Declaration: ${attributes['SNAR_BEZEI']}<br>
+    Declaration: ${attributes['CT']}<br>
     Conform: ${attributes.match === true ? 'yes'
              : attributes.match === false ? 'no'
              : 'not classified'}<br>
-    Confidence level: ${attributes.accuracy}${attributes.accuracy ? '%' : ''}`,
+    Confidence level: ${typeof (attributes.accuracy) !== 'undefined' ? attributes.accuracy : 'not classified'}${attributes.accuracy ? '%' : ''}`,
     { sticky:true })
 })
 
@@ -741,9 +741,7 @@ function colorFeatures(idmap) {
   idmap.forEach((parcel, id)  => {
     const classification_results = parcel.classification_results
     const tilekey = parcel.tilekey
-    window.setTimeout(() => {
-      updateFeatureWithClassificationResults(tilekey, id, classification_results)},
-      2000)
+    updateFeatureWithClassificationResults(tilekey, id, classification_results)
   })
 }
 
