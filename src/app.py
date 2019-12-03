@@ -201,11 +201,13 @@ def predictions():
         parcel_ids = request.args['parcel_ids']
     elif request.method == 'POST':
         if not request.content_type == 'application/json':
-            return Response('Content-type must be application/json', status=401, mimetype='application/json')
+            return Response('Content-type must be application/json', status=400, mimetype='application/json')
         try:
             parcel_ids = request.json['parcel_ids']
         except KeyError:
-            return Response('No "parcel_ids" attribute found', status=401, mimetype='application/json')
+            return Response('No "parcel_ids" attribute found', status=400, mimetype='application/json')
+    if (not parcel_ids):
+        return Response('"parcel_ids" attribute value is empty', status=400, mimetype='application/json')
     conn = psycopg2.connect(host=db_host,
                             database=db_database,
                             port=db_port,

@@ -26,15 +26,15 @@ Visualize land parcels together with classification results
 
 /****** PARAMETERS ******/
 
-const AGRICULTURAL_PARCELS_URL_TEMPLATE = '/tiles/agricultural_parcels_unzipped/{z}/{x}/{y}'
-const PHYSICAL_BLOCKS_URL_TEMPLATE = '/tiles/physical_blocks_unzipped/{z}/{x}/{y}'
+const AGRICULTURAL_PARCELS_URL_TEMPLATE = '/tiles/agricultural_parcels_unzipped/{z}/{x}/{y}.pbf'
+const PHYSICAL_BLOCKS_URL_TEMPLATE = '/tiles/physical_blocks_unzipped/{z}/{x}/{y}.pbf'
 //const MUNICIPALITIES_URL_TEMPLATE = '/tiles/municipalities_unzipped/{z}/{x}/{y}'
 
 // NUTS_LEVEL and NUTS_CODE_STARTS_WITH only apply to GeoJSONs from Eurostat's Nuts2json
 // https://github.com/eurostat/Nuts2json
 const NUTS_LEVEL = 2
 const NUTS_CODE_STARTS_WITH = 'AT'
-const NUTS2_GEOJSON_URL = 'geodata/bounding_box_classification_20190723.geojson' // OR: `https://raw.githubusercontent.com/eurostat/Nuts2json/gh-pages/2016/4258/10M/nutsrg_${NUTS_LEVEL}.json`
+const NUTS2_GEOJSON_URL = 'geodata/bbox_classification_20191201.geojson' // OR: `https://raw.githubusercontent.com/eurostat/Nuts2json/gh-pages/2016/4258/10M/nutsrg_${NUTS_LEVEL}.json`
 
 const CLASSIFICATION_API_URL = '/predictions'
 
