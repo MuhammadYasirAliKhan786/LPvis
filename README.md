@@ -11,6 +11,8 @@ LPvis 🕺
 
 - use a trained Crop-Type classification ML (details to follow) to visualize "declaration" vs "classification result" for LPIS parcels
 
+![Confusion Matrix](media/confusion%20matrix.png)
+
 ## Prerequisites
 
 - LPIS/IACS data - i.e. agricultural parcel boundaries as well as farmer crop type declararation - are ingested in Euro Data Cube - geoDB vector databases: this has been done with open government data of Austria for the years 2016, 2017, 2018
@@ -20,6 +22,8 @@ LPvis 🕺
 - a validated dataset of farmer declarations of 2018 is used to train a Crop-Type classification ML on a sample region, this model is applied to a larger region based on NDVI timestacks for 2018 and stored back in Euro Data Cube - geoDB
 
 **Note:** the trained ML model uses Crop-Type groups (like `Sommergetreide`) and not concrete Crop-Types (like `ZuckerMais`, `Hirse`), a mapping table was used for traffic light visualization (e.g. `green` = farmers Crop-Type declaration matches predecited Crop-Type group with prediction model accuracy > 95%)
+
+![Overview](media/overview.JPG)
 
 ## Important
 
