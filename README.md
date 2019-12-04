@@ -27,4 +27,4 @@ LPvis 🕺
 
 ## Important
 
-The current backend implementation requires a Euro Data Cube subscription for NDVI timestacks and Euro Data Cube - geoDB (based on PostGIS database) for vector data!
+The current backend implementation requires a Euro Data Cube service for NDVI timestacks and Euro Data Cube - geoDB (based on PostGIS database) to handle LPIS/IACS as well as precitions vector data!
