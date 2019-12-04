@@ -740,8 +740,8 @@ let new_parcels = new Map()
 function colorFeatures(idmap) {
   idmap.forEach((parcel, id)  => {
     const classification_results = parcel.classification_results
-    const tilekey = parcel.tilekey
-    updateFeatureWithClassificationResults(tilekey, id, classification_results)
+    const tilekeys = parcel.tilekeys
+    tilekeys.forEach(tilekey => updateFeatureWithClassificationResults(tilekey, id, classification_results))
   })
 }
 
@@ -751,6 +751,13 @@ function setDiff(a,b) {
 
 function mapDiff(a,b) {
   return new Map([...a].filter(x => !b.has(x[0])))
+}
+
+function mapDiffWithTileKeysCheck(a,b) {
+  // extra check if there is same list of tilekeys or different
+  // taking care of corner case when parcel was fetched in another tile already
+  // we need to refetch it to color it even on new tile
+  return new Map([...a].filter(x => !b.has(x[0]) || !arraysEqualityCheck(b.get(x[0]['tilekeys']), x[1]['tilekeys'])))
 }
 
 function updateFeatureWithClassificationResults(key, id, classification_result) {
@@ -778,8 +785,8 @@ function updateFeatureWithClassificationResults(key, id, classification_result) 
       )
     )
     const table_column_keys_new = Object.keys(feature_properties).filter(col_name => {
-      // filter out tilekey from table columns
-      return col_name !== 'tilekey'
+      // filter out tilekeys from table columns
+      return col_name !== 'tilekeys'
     })
     if (!arraysEqualityCheck(currently_used_table_columns, table_column_keys_new)) {
       // delete & add back table because columns changed after new data fetched
@@ -811,15 +818,25 @@ agricultural_parcels.on('load', e => {
     const features = agricultural_parcels._vectorTiles[key]._features
     const tile_parcels = new Map(Object.keys(features).map(id => {
       const properties = features[id][0].feature.properties
-      properties.tilekey = key // a feature might have multiple tilekeys if split over more than one tile, only latest tile gets updated
+      properties.tilekeys = [key]
       return [Number(id), properties]
     }))
-    new_parcels = new Map([...new_parcels, ...tile_parcels]) // later maps overwrite properties of earlier maps
+    tile_parcels.forEach((params, key) => {
+      // insert parcel into new_parcels map only if it is not there yet
+      // if yes, just append another tilekey to tilekeys
+      if (!new_parcels.has(key)) {
+        new_parcels.set(key, params)
+      } else {
+        const new_parcels_params = Object.assign({}, new_parcels.get(key))
+        new_parcels_params['tilekeys'] = new_parcels_params['tilekeys'].concat(params['tilekeys'])
+        new_parcels.set(key, new_parcels_params)
+      }
+    }) 
   })
 
 
   // Prune and send ids to service
-  const pruned_parcels = mapDiff(new_parcels, parcel_map) // prune new_parcels (remove parcels that we already have)
+  const pruned_parcels = mapDiffWithTileKeysCheck(new_parcels, parcel_map) // prune new_parcels (remove parcels that we already have)
   // console.log(pruned_parcels)
   const sent_ids = new Set(pruned_parcels.keys())
   fetchClassificationApi(CLASSIFICATION_API_URL, { parcel_ids: [...sent_ids] })
@@ -833,9 +850,8 @@ agricultural_parcels.on('load', e => {
                   properties = pruned_parcels.get(parcel_id)
 
             return [parcel_id, {
-              'declared_ct_id': properties.Ctnum,
               'classification_results': r.classification_results,
-              'tilekey': properties.tilekey
+              'tilekeys': properties.tilekeys
           }]
         }))
         // console.log(results)
@@ -858,7 +874,7 @@ agricultural_parcels.on('tileunload', e => {
   // console.log(removed_ids)
   // remove ids even if they might still be in one of the displayed tiles.
   // We can fetch the few again.
-  parcel_map = mapDiff(parcel_map, removed_ids)
+  parcel_map = mapDiffWithTileKeysCheck(parcel_map, removed_ids)
   console.log(parcel_map)
 })
 
