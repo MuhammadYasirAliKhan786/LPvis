@@ -589,7 +589,7 @@ agricultural_parcels.on('mouseover', e => {
     Conform: ${attributes.match === true ? 'yes'
              : attributes.match === false ? 'no'
              : 'not classified'}<br>
-    Confidence level: ${typeof (attributes.accuracy) !== 'undefined' ? attributes.accuracy : 'not classified'}${attributes.accuracy ? '%' : ''}`,
+    Confidence level: ${typeof (attributes.accuracy) !== 'undefined' ? attributes.accuracy : 'not classified'}`,
     { sticky:true })
 })
 
@@ -891,10 +891,10 @@ legend_control = L.control.custom({
   classes: 'legend custom-control',
   content: (function() {
     let legend_content = ''
-    const high_confidence_string = `High Confidence (≥${CONFIDENCE_THRESHOLD}%)`
+    const high_confidence_string = `High Confidence (≥${CONFIDENCE_THRESHOLD})`
     const legend_definition = {
       'green':  ['Conform', high_confidence_string],
-      'yellow': [`Low Confidence (<${CONFIDENCE_THRESHOLD}%)`],
+      'yellow': [`Low Confidence (<${CONFIDENCE_THRESHOLD})`],
       'red':    ['Not conform', high_confidence_string]
     }
 
