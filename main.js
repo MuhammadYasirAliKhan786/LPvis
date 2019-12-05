@@ -777,14 +777,14 @@ function updateFeatureWithClassificationResults(key, id, classification_result) 
     if (classification_result[0]) {
       feature_properties.match = (declared_group === classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM]);
       feature_properties.accuracy = classification_result[0].probability;
-      feature_properties.classified_first_rank = classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+      feature_properties.classified_first_rank = convertCropGroupAt(classification_result[0][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM]);
     }
     if (classification_result[1]) {
-      feature_properties.classified_second_rank = classification_result[1][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+      feature_properties.classified_second_rank = convertCropGroupAt(classification_result[1][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM]);
       feature_properties.accuracy_second_rank = classification_result[1].probability;
     }
     if (classification_result[2]) {
-      feature_properties.classified_third_rank = classification_result[2][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM];
+      feature_properties.classified_third_rank = convertCropGroupAt(classification_result[2][AGRICULTURAL_PARCELS_CLASSIFICATION_PARAM]);
       feature_properties.accuracy_third_rank = classification_result[2].probability;
     }
     agricultural_parcels.setFeatureStyle(id,

@@ -73,6 +73,7 @@ db_database = os.environ.get('DB_DATABASE')
 db_port = int(os.environ.get('DB_PORT', 5432))
 db_user = os.environ.get('DB_USER')
 db_password = os.environ.get('DB_PASSWORD')
+db_modelId = os.environ.get('DB_MODEL_ID')
 
 client_id = os.environ.get('SH_CLIENT_ID')
 client_secret = os.environ.get('SH_CLIENT_SECRET')
@@ -214,7 +215,7 @@ def predictions():
                             user=db_user,
                             password=db_password)
     cur = conn.cursor()
-    cur.execute("SELECT parcel_id, prediction FROM classification_at WHERE parcel_id in (%s)" % checkIds(parcel_ids))
+    cur.execute("SELECT parcel_id, prediction FROM classification_at WHERE model_id = %s AND parcel_id in (%s)" % (db_modelId, checkIds(parcel_ids)))
     try:
         classification_db_data = cur.fetchall()
         logger.debug('Received data.')
