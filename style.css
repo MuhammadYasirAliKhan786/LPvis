@@ -507,3 +507,6 @@ circle {
 	border-radius: 2px;
 	text-transform: uppercase;
 }
+.leaflet-container.crosshair-cursor-enabled {
+  cursor:crosshair;
+}

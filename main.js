@@ -232,6 +232,9 @@ L.control.Table.include({
   }
 })
 
+// Prepare leaflet.css style update for timestack mode cursor change
+const leaflet_interactive_style_css = getStyleGlobal('.leaflet-interactive')
+
 /* New button to toggle timestack mode / sidebar */
 L.Control.Timestack = L.Control.extend({
   options: {
@@ -259,10 +262,15 @@ L.Control.Timestack = L.Control.extend({
     if(timestack_mode) {
       timestack_mode = false
       this.classList.remove('active')
+      // changing global stylesheet to avoid iterating over large number of svg elements
+      leaflet_interactive_style_css['cursor'] = 'pointer'
+      L.DomUtil.removeClass(map._container,'crosshair-cursor-enabled');
       hideSidebar()
     } else {
       timestack_mode = true
       this.classList.add('active')
+      leaflet_interactive_style_css['cursor'] = 'crosshair'
+      L.DomUtil.addClass(map._container,'crosshair-cursor-enabled');
     }
   }
 })
