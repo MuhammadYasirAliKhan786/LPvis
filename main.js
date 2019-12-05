@@ -146,20 +146,22 @@ L.Control.MagnifyingGlass = L.Control.extend({
     L.DomEvent
     .addListener(link, 'click', L.DomEvent.stopPropagation)
     .addListener(link, 'click', L.DomEvent.preventDefault)
-    .addListener(link, 'click', function() {method(map, magnifyingGlass);}, map);
+    .addListener(link, 'click', function() {method(map, magnifyingGlass, link);}, map);
 
     return link;
   },
 
-  _clicked: function (map, magnifyingGlass) {
+  _clicked: function (map, magnifyingGlass, link) {
     if (!magnifyingGlass) {
       return;
     }
 
     if (map.hasLayer(magnifyingGlass)) {
       map.removeLayer(magnifyingGlass);
+      link.classList.remove('active')
     } else {
       magnifyingGlass.addTo(map);
+      link.classList.add('active')
     }
   }
 });

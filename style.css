@@ -370,6 +370,9 @@ div.leaflet-bottom.leaflet-left {
   font-size: 1.5em;
 }
 
+.leaflet-control-magnifying-glass.active {
+	background-color: var(--light-grey);
+}
 
 /* MINIMAP CONTROL */
 .leaflet-control-minimap {
