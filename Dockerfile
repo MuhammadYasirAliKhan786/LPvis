@@ -31,6 +31,9 @@ COPY utils.js src/static/utils.js
 COPY style.css src/static/style.css
 COPY index.html src/static/index.html
 
+# uncompress tiles if in gz format
+RUN for g in src/static/tiles/*.gz; do tar xzf $g -C src/static/tiles/; rm $g;done
+
 # copy backend
 ENV FLASK_APP src/app.py
 COPY src/. src/.
