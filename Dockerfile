@@ -21,18 +21,18 @@ WORKDIR /home/LPVis
 
 # copy LPVis
 COPY dependencies/. src/static/dependencies/.
+COPY tiles/. src/static/tiles/.
+# uncompress tiles if in gz format
+RUN for g in src/static/tiles/*.gz; do tar xzf $g -C src/static/tiles/; rm $g;done
+
 COPY geodata/. src/static/geodata/.
 COPY media/. src/static/media/.
 COPY util/. src/static/util/.
-COPY tiles/. src/static/tiles/.
 COPY main.js src/static/main.js
 COPY timestacks.js src/static/timestacks.js
 COPY utils.js src/static/utils.js
 COPY style.css src/static/style.css
 COPY index.html src/static/index.html
-
-# uncompress tiles if in gz format
-RUN for g in src/static/tiles/*.gz; do tar xzf $g -C src/static/tiles/; rm $g;done
 
 # copy backend
 ENV FLASK_APP src/app.py
