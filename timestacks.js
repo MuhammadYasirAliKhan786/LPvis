@@ -3,7 +3,7 @@
 /****** PARAMETERS ******/
 
 const NO_TIMESTACK_FOUND_STRING = 'No timestack available for this parcel'
-
+let lastTimestack
 function edcApi(strings, parcel_id) { return `/timestacks?parcel_id=${parcel_id}` }
 
 
@@ -98,10 +98,20 @@ function setUpSidebar() {
 
 
   // DOWNLOAD BUTTON
-  d3.select('#sidebar').append('a')
+  d3.select('#sidebar').append('button')
     .classed('btn download-btn', true)
     .attr('id', 'download-button')
-    .html('<i class="fas fa-download"></i> Download Timestack (CSV)')
+    .html('<i class="fas fa-download"></i> Download Timestack (JSON)')
+    .on('click', downloadTimestackJson)
+}
+
+function downloadTimestackJson() {
+  const a = document.createElement('a')
+  const evt = document.createEvent('MouseEvents')
+  evt.initEvent('click', true, true)
+  a.setAttribute('download', 'timestack.json')
+  a.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(lastTimestack)))
+  a.dispatchEvent(evt);
 }
 
 function setFilterOnAllSidebarChildrenButOverlay(filter) {
@@ -132,7 +142,6 @@ function updateSidebar(parcel_id) {
   tooltip.style('display', 'none')
   d3.select('#tooltip-line').style('visibility', 'hidden')
 
-  // TODO: fix download button (download json response)
   fetch(edcApi`${parcel_id}`)
   .then(response => {
     if (response.ok) {
@@ -161,6 +170,7 @@ function updateSidebar(parcel_id) {
         max : o.basicStats.max
       }
     })
+    lastTimestack = Object.assign({}, ndvits)
 
     console.log(ndvits)
 

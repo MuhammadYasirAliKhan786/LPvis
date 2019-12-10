@@ -131,6 +131,7 @@ details{
 
 .download-btn {
 	padding: 0.5em;
+	cursor: pointer;
 }
 
 #sidebar-overlay {
