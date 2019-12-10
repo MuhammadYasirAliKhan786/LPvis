@@ -178,7 +178,7 @@ def get_timestack():
         'time': f'{date_start}/{date_end}',
         'resolution': '10m',
         'geometry': wkt,
-        'bins': 10,
+        # 'bins': 10,
         'type': 'EQUALFREQUENCY',
         'maxcc': request.args.get('maxcc', 10)
     }
