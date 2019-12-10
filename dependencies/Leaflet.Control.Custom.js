@@ -46,7 +46,7 @@
             {
                 L.DomEvent.on(this.container, event, this.options.events[event], this.container);
             }
-
+            map[`_customControl_${this.options.id}`] = this;
             return this.container;
         },
 
@@ -54,6 +54,9 @@
             for (var event in this.options.events)
             {
                 L.DomEvent.off(this.container, event, this.options.events[event], this.container);
+            }
+            if (map.hasOwnProperty(`_customControl_${this.options.id}`)) {
+              delete map[`_customControl_${this.options.id}`];
             }
         },
     });

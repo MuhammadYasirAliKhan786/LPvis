@@ -351,18 +351,16 @@ div.leaflet-bottom.leaflet-left {
 .legend-colour {
   display: inline-block;
   vertical-align: middle;
+	width: 2em;
+	height: 2em;
+	cursor: pointer;
 }
 
 .legend-description {
   display: none;
   margin-left: 5px;
+	cursor: pointer;
 }
-
-.legend-colour {
-  width: 2em;
-  height: 2em;
-}
-
 
 /* MAGNIFIYING GLASS  CONTROL */
 

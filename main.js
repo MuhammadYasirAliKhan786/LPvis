@@ -68,6 +68,10 @@ const parcel_style_highlighted = {
   fillOpacity: 1,
 }
 
+const parcel_style_hidden = {
+  visibility: 'hidden'
+}
+
 let clicked_features = []
 let timestack_mode = false
 let legend_control, nuts2, swipe_control, timestack_control, table, table_control, table_deletion_ref, currently_used_table_columns
@@ -246,6 +250,7 @@ L.Control.Timestack = L.Control.extend({
   onAdd: function (map) {
     const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control')
     const link = L.DomUtil.create('a', 'custom-control leaflet-control-timestack fas fa-chart-area', container)
+    link.setAttribute('title', 'Toggle Timestack mode')
 
     L.DomEvent
       .addListener(link, 'click', L.DomEvent.stopPropagation)
@@ -417,22 +422,26 @@ function trafficLightStyle (match, accuracy, is_highlighted) {
   if (accuracy < CONFIDENCE_THRESHOLD) return {
     fillColor: 'yellow',
     color: 'yellow',
-    ...(is_highlighted ? parcel_style_highlighted : parcel_style)
+    ...(is_highlighted ? parcel_style_highlighted : parcel_style),
+    ...(legend_control.options._color_hidden.yellow ? parcel_style_hidden : {})
   }
   else if (match === true) return {
     fillColor: 'green',
     color: 'green',
     ...(is_highlighted ? parcel_style_highlighted : parcel_style),
+    ...(legend_control.options._color_hidden.green ? parcel_style_hidden : {})
   }
   else if (match === false) return {
     fillColor: 'red',
     color: 'red',
-    ...(is_highlighted ? parcel_style_highlighted : parcel_style)
+    ...(is_highlighted ? parcel_style_highlighted : parcel_style),
+    ...(legend_control.options._color_hidden.red ? parcel_style_hidden : {})
   }
   else return {
     fillColor: 'grey',
     color: 'grey',
-    ...(is_highlighted ? parcel_style_highlighted : parcel_style)
+    ...(is_highlighted ? parcel_style_highlighted : parcel_style),
+    ...(legend_control.options._color_hidden.grey ? parcel_style_hidden : {})
   }
 }
 
@@ -724,7 +733,7 @@ map.on('layeradd', e => {
     initSwipeControl()
   }
 
-  if(map.getZoom() >= 14 && map.hasLayer(agricultural_parcels) && legend_control) {
+  if(map.getZoom() >= 14 && map.hasLayer(agricultural_parcels) && legend_control && !map._customControl_legend) {
     map.addControl(legend_control)
   }
 })
@@ -865,7 +874,17 @@ agricultural_parcels.on('load', e => {
           }]
         }))
         // console.log(results)
-
+        // merge parcels_we_have with results_we_received to color(grey) those parcels not returned by API for some reason too
+        const pruned_parcels_save = new Map([...pruned_parcels].map(x => {
+          return [
+            x[0], 
+            {
+              'classification_results': [],
+              'tilekeys': x[1]['tilekeys']
+            }
+          ]
+        }))
+        results = new Map([...pruned_parcels_save, ...results])
         colorFeatures(results)
         parcel_map = new Map([...parcel_map, ...results])
         console.log(parcel_map)
@@ -913,6 +932,7 @@ L.control.mousePosition({
 }).addTo(map);
 
 legend_control = L.control.custom({
+  id: 'legend',
   position: 'topright',
   classes: 'legend custom-control',
   content: (function() {
@@ -921,18 +941,36 @@ legend_control = L.control.custom({
     const legend_definition = {
       'green':  ['Conform', high_confidence_string],
       'yellow': [`Low Confidence (<${CONFIDENCE_THRESHOLD})`],
-      'red':    ['Not conform', high_confidence_string]
+      'red':    ['Not conform', high_confidence_string],
+      'grey':   ['Not classified'],
     }
-
-    for(let colour of Object.keys(legend_definition)) {
+    for(let color of Object.keys(legend_definition)) {
       legend_content +=
         `<div class="legend-row">
-          <div class="legend-colour" style="background-color: ${colour}"></div>
-          <div class="legend-description">${legend_definition[colour].join('<br>')}</div>
+          <div class="legend-colour" title="Click to show/hide parcels" style="background-color: ${color}" data-color=${color}></div>
+          <div class="legend-description" data-color=${color}>${legend_definition[color].join('<br>')}</div>
         </div>`
     }
     return legend_content
-  })()
+  })(),
+  events: {
+    click: function (evt) {
+      // enable or disable target color from display
+      if (evt) {
+        const color = evt.target.dataset.color
+        if (typeof (color !== 'undefined') && legend_control.options._color_hidden.hasOwnProperty(color)) {
+          legend_control.options._color_hidden[color] = !legend_control.options._color_hidden[color]
+          colorFeatures(parcel_map)
+        }
+      }
+    }
+  },
+  _color_hidden: {
+    'green': false,
+    'yellow': false,
+    'red': false,
+    'grey': false,
+  },
 })
 
 const magnifying_glass = L.magnifyingGlass({
