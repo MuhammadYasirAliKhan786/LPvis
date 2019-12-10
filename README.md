@@ -1,5 +1,7 @@
 # Project
 
+[Demonstrator deployed on EOxHub](https://lpvis-0652eab6-e5d0-11e9-a359-2a2ae2dbcce4.edc.hub.eox.at)
+
 This is a **fork** of the 
 
 LPvis 🕺
