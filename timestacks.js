@@ -165,7 +165,7 @@ function updateSidebar(parcel_id) {
     }
 
     // Transform data
-    let ndvits = json.C0
+    let ndvits = json.C0.reverse()
     console.log(ndvits)
     ndvits = ndvits.map(o => {
       return {
