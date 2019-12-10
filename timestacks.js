@@ -4,6 +4,7 @@
 
 const NO_TIMESTACK_FOUND_STRING = 'No timestack available for this parcel'
 let lastTimestack
+let totalRequests = 0
 function edcApi(strings, parcel_id) { return `/timestacks?parcel_id=${parcel_id}` }
 
 
@@ -141,22 +142,26 @@ function updateSidebar(parcel_id) {
   // (otherwise they still show data from another parcel)
   tooltip.style('display', 'none')
   d3.select('#tooltip-line').style('visibility', 'hidden')
-
+  totalRequests += 1
   fetch(edcApi`${parcel_id}`)
   .then(response => {
     if (response.ok) {
+      totalRequests -= 1
       return response.json()
     } else {
       // is thrown mainly when id is not valid
+      totalRequests -= 1
       throw new Error(NO_TIMESTACK_FOUND_STRING)
     }
   })
   .then(json => {
-    // unblur sidebar and remove sidebar overlay, if it exists
-    setFilterOnAllSidebarChildrenButOverlay('')
+    if (totalRequests === 0) {
+      // unblur sidebar and remove sidebar overlay, if it exists
+      setFilterOnAllSidebarChildrenButOverlay('')
 
-    if(document.querySelector('#sidebar-overlay')) {
-      document.querySelector('#sidebar-overlay').remove()
+      if(document.querySelector('#sidebar-overlay')) {
+        document.querySelector('#sidebar-overlay').remove()
+      }
     }
 
     // Transform data
