@@ -807,7 +807,7 @@ function updateFeatureWithClassificationResults(key, id, classification_result) 
       // filter out tilekeys from table columns
       return col_name !== 'tilekeys'
     })
-    if (!arraysEqualityCheck(currently_used_table_columns, table_column_keys_new)) {
+    if (currently_used_table_columns.length < table_column_keys_new.length) {
       // delete & add back table because columns changed after new data fetched
       currently_used_table_columns = table_column_keys_new
       table_control.removeTable(table_deletion_ref[0], table_deletion_ref[1])
