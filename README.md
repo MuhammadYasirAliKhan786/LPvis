@@ -13,7 +13,7 @@ LPvis 🕺
 
 - use a trained Crop-Type classification ML (details to follow) to visualize "declaration" vs "classification result" for LPIS parcels
 
-![Confusion Matrix](media/confusion%20matrix.png)
+![Confusion Matrix](media/confusion_matrix.jpg)
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ LPvis 🕺
 
 **Note:** the trained ML model uses Crop-Type groups (like `Sommergetreide`) and not concrete Crop-Types (like `ZuckerMais`, `Hirse`), a mapping table was used for traffic light visualization (e.g. `green` = farmers Crop-Type declaration matches predecited Crop-Type group with prediction model accuracy > 95%)
 
-![Overview](media/overview.png)
+![Overview](media/lpvis.jpg)
 
 ## Important
 
