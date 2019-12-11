@@ -751,7 +751,6 @@ map.on('layerremove', e => {
 })
 
 /* Dynamic Classification Results */
-let sum = 0
 let parcel_map = new Map()
 let new_tile_keys = new Set()
 let new_parcels = new Map()
@@ -896,14 +895,23 @@ agricultural_parcels.on('tileunload', e => {
   console.log('Tile unloaded')
   const key = agricultural_parcels._tileCoordsToKey(e.coords)
   const removed_ids = new Set(Array.from(parcel_map.entries()).filter(p => {
-    return p[1].tilekey === key
+    const contains = p[1].tilekeys.includes(key)
+    if (p[1].tilekeys.length > 1) {
+      // just remove reference to tile key
+      var index = p[1].tilekeys.indexOf(key);
+      if (index > -1) {
+        p[1].tilekeys.splice(index, 1);
+      }
+      return false
+    }
+    // will be deleted
+    return true
   }).map(p => {
     return p[0]
   }))
-  // console.log(removed_ids)
-  // remove ids even if they might still be in one of the displayed tiles.
-  // We can fetch the few again.
-  parcel_map = mapDiffWithTileKeysCheck(parcel_map, removed_ids)
+  for (let id of removed_ids.keys()) {
+    parcel_map.delete(id)
+  }
   console.log(parcel_map)
 })
 
