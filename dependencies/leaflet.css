@@ -131,6 +131,12 @@
 	z-index: 1000;
 	pointer-events: none;
 	}
+.leaflet-center {
+	left: 50%;
+	right: 50%;
+	top: 50%;
+	bottom: 50%;
+}	
 .leaflet-top {
 	top: 0;
 	}

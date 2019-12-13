@@ -5,6 +5,7 @@
 	/* --background-grey: #111215;
 	--dark-grey: #22232d; */
 	--light-grey: #777787;
+	--lighter-grey: #d3d3de;
 	--text-color: white;
 	--highlight-color: blue;
 }
@@ -503,7 +504,7 @@ circle {
 }
 #ie-info .btn-primary {
 	background: var(--light-grey);
-	color: #fff;
+	color: var(--text-color);
 	font-weight: bold;
 	padding: 16px 40px;
 	border-radius: 2px;
@@ -511,4 +512,33 @@ circle {
 }
 .leaflet-container.crosshair-cursor-enabled {
   cursor:crosshair;
+}
+.photon-input, .photon-autocomplete {
+	background: var(--background-grey);
+	color: var(--text-color);
+}
+.photon-input::placeholder {
+	color: var(--lighter-grey);
+}
+.search-results-title {
+	font-size: 0.95em;
+}
+.search-results-details {
+	font-size: 0.85em;
+}
+.leaflet-photon, .photon-autocomplete {
+	transform: translate(-100px,0px);
+}
+.leaflet-photon {
+	display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.photon-icon {
+	background: var(--background-grey);
+	color: var(--text-color);
+}
+
+.photon-autocomplete li.on {
+	background: var(--dark-grey);
 }

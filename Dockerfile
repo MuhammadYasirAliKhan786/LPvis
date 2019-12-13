@@ -18,13 +18,12 @@ ADD requirements.txt .
 RUN pip3 install -r requirements.txt
 
 WORKDIR /home/LPVis
-
-# copy LPVis
-COPY dependencies/. src/static/dependencies/.
 COPY tiles/. src/static/tiles/.
 # uncompress tiles if in gz format
 RUN for g in src/static/tiles/*.gz; do tar xzf $g -C src/static/tiles/; rm $g;done
 
+# copy LPVis
+COPY dependencies/. src/static/dependencies/.
 COPY geodata/. src/static/geodata/.
 COPY media/. src/static/media/.
 COPY util/. src/static/util/.

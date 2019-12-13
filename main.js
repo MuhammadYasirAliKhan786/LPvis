@@ -1019,3 +1019,45 @@ L.control.scale( {
 } ).addTo(map)
 
 timestack_control = L.control.timestack()
+
+function formatResultsSearch(feature, el) {
+  var title = L.DomUtil.create('div', 'search-results-title', el),
+    detailsContainer = L.DomUtil.create('div', 'search-results-details', el),
+    details = [],
+    type = this.formatType(feature);
+  if (feature.properties.name) {
+    title.innerHTML = feature.properties.name;
+  } else if (feature.properties.housenumber) {
+    title.innerHTML = feature.properties.housenumber;
+    if (feature.properties.street) {
+      title.innerHTML += ' ' + feature.properties.street;
+    }
+  }
+  if (type) details.push(type);
+  if (feature.properties.city && feature.properties.city !== feature.properties.name) {
+    details.push(feature.properties.city);
+  }
+  if (feature.properties.country) details.push(feature.properties.country);
+  detailsContainer.innerHTML = details.join(', ');
+}
+
+function onSelectedSearch(feature) {
+  const zoomToUse = map.getZoom() >= 14 ? map.getZoom() : 14;
+  map.setView([feature.geometry.coordinates[1], feature.geometry.coordinates[0]], zoomToUse);
+}
+
+const photonControlOptions = {
+  //url:
+  position: 'topcenter', 
+  placeholder: 'Zoom to Place ...',
+  feedbackEmail: null,
+  minChar: 3,
+  limit: 7,
+  lang: 'en',
+  formatResult: formatResultsSearch,
+  onSelected: onSelectedSearch,
+  bbox: [9.3, 46.3, 17.4, 49.0],
+}
+
+const searchControl = L.control.photon(photonControlOptions);
+searchControl.addTo(map);

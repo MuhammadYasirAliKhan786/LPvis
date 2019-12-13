@@ -1,0 +1,48 @@
+ul.photon-autocomplete {
+    position: absolute;
+    z-index: 1000;
+    box-shadow: 0 4px 9px #999999;
+    display: none;
+}
+.photon-autocomplete li {
+    line-height: 1em;
+    padding: 4px 8px;
+    overflow: hidden;
+    font-size: 1em;
+    height: auto;
+    border-bottom: 1px solid var(--light-grey);
+}
+.photon-autocomplete li strong {
+    display: block;
+}
+.photon-autocomplete li.on {
+    cursor: pointer;
+}
+.photon-autocomplete li.photon-no-result {
+    text-align: center;
+    font-size: 1.1em;
+    line-height: 40px;
+}
+.photon-input:focus {
+  outline: none;
+}
+.photon-autocomplete {
+	padding: 0;
+	margin: 0;
+}
+.photon-autocomplete > li > div {
+	padding: 0;
+	margin: 0;
+}
+.photon-input {
+	min-width: 200px;
+	border: none;
+	font-size: 1.2em;
+	padding: 6px 10px;
+  height: 34px;
+}
+.photon-icon {
+  padding: 4px;
+  font-size: 2em;
+  height: 34px;
+}
