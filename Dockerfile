@@ -2,11 +2,7 @@ FROM ubuntu:18.04
 
 # install OS dependency packages
 RUN apt-get update && \
-  apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-gdal \
-    gdal-bin && \
+  apt-get install -y curl && \
   apt-get autoremove -y && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/partial/* /tmp/* /var/tmp/*
@@ -14,8 +10,23 @@ RUN apt-get update && \
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-ADD requirements.txt .
-RUN pip3 install -r requirements.txt
+RUN curl -LO http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+RUN bash Miniconda3-latest-Linux-x86_64.sh -p /miniconda -b
+RUN rm Miniconda3-latest-Linux-x86_64.sh
+ENV PATH=/miniconda/bin:${PATH}
+RUN conda update -y conda
+RUN conda config --add channels conda-forge
+
+RUN conda install --freeze-installed xcube_geodb
+RUN conda install requests requests-oauthlib flask oauthlib
+
+RUN conda install pip \
+  && conda clean -afy \
+  && find /miniconda/ -follow -type f -name '*.a' -delete \
+  && find /miniconda/ -follow -type f -name '*.js.map' -delete \
+  && find /miniconda/lib/python*/site-packages/bokeh/server/static -follow -type f -name '*.js' ! -name '*.min.js' -delete
+
+RUN pip install prometheus-flask-exporter==0.9.1
 
 WORKDIR /home/LPVis
 COPY tiles/. src/static/tiles/.
