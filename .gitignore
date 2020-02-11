@@ -5,3 +5,4 @@ geodata/massrequest-fis-api.sh
 *.py[cod]
 __pcache__/
 .pytest_cache/
+**.env
