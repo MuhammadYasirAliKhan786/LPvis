@@ -4,19 +4,15 @@ import logging
 import logging.config
 import oauthlib.oauth2
 import requests_oauthlib
-import json
-import os
-import psycopg2
 import requests
-import oauthlib.oauth2
-import requests_oauthlib
 
 from . import VERSION
 from flask import Flask, escape, request, jsonify, json, Response
-from os.path import dirname, join
 from prometheus_flask_exporter import PrometheusMetrics
+from xcube_geodb.core.geodb import GeoDBClient
 
 app = Flask(__name__, static_url_path='')
+geodb = GeoDBClient()
 
 metrics = PrometheusMetrics(app)
 
@@ -68,15 +64,9 @@ logging.config.dictConfig({
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
-db_host = os.environ.get('DB_HOST')
-db_database = os.environ.get('DB_DATABASE')
-db_port = int(os.environ.get('DB_PORT', 5432))
-db_user = os.environ.get('DB_USER')
-db_password = os.environ.get('DB_PASSWORD')
-db_modelId = os.environ.get('DB_MODEL_ID')
-
 client_id = os.environ.get('SH_CLIENT_ID')
 client_secret = os.environ.get('SH_CLIENT_SECRET')
+db_modelId = os.environ.get('GEODB_MODEL_ID')
 
 client = oauthlib.oauth2.BackendApplicationClient(client_id=client_id)
 session = requests_oauthlib.OAuth2Session(client=client)
@@ -124,34 +114,24 @@ def get_instance_id(session):
 @app.route('/timestacks')
 def get_timestack():
     global INSTANCE_ID
-    conn = psycopg2.connect(host=db_host,
-                            database=db_database,
-                            port=db_port,
-                            user=db_user,
-                            password=db_password)
-    cur = conn.cursor()
-
-    print('Connection started.')
-
-    cur.execute("SELECT ST_AsText(ST_Transform(geometry, 4326)) FROM lpis_at WHERE d_od BETWEEN '2018-01-01' AND '2018-12-31' AND raba_pid=%(parcel_id)s", {
-        'parcel_id': request.args['parcel_id']
-    })
+    wkt = None
 
     try:
-        wkt = cur.fetchall()[0][0]
-        print(wkt)
-    except IndexError:
+        pd_fr = geodb.get_collection_pg(
+            collection='lpis_at',
+            select="ST_AsText(geometry)",
+            where="raba_pid = %s AND d_od BETWEEN '2018-01-01' AND '2018-12-31'" % int(request.args['parcel_id'])
+        )
+        logger.debug('Received data.')
+        wkt = pd_fr.iloc[0, 0]
+    except Exception as e:
         return Response(
             json.dumps({
-                'error': 'no such parcel'
+                'error': str(e)
             }),
             content_type='application/json',
             status=404
         )
-    finally:
-        conn.close()
-        print('Connection closed.')
-
     try:
         if not INSTANCE_ID:
             refresh_token(session)
@@ -175,7 +155,7 @@ def get_timestack():
     body = {
         'layer': 'NDVI',
         'crs': 'CRS:84',
-        'time': f'{date_start}/{date_end}',
+        'time': "%s/%s" % (date_start, date_end),
         'resolution': '10m',
         'geometry': wkt,
         # 'bins': 10,
@@ -198,6 +178,7 @@ def get_timestack():
 @app.route('/predictions', methods=['GET', 'POST'])
 def predictions():
     parcel_ids = {}
+    results_response = {'null': None}
     if request.method == 'GET':
         parcel_ids = request.args['parcel_ids']
     elif request.method == 'POST':
@@ -209,29 +190,37 @@ def predictions():
             return Response('No "parcel_ids" attribute found', status=400, mimetype='application/json')
     if (not parcel_ids):
         return Response('"parcel_ids" attribute value is empty', status=400, mimetype='application/json')
-    conn = psycopg2.connect(host=db_host,
-                            database=db_database,
-                            port=db_port,
-                            user=db_user,
-                            password=db_password)
-    cur = conn.cursor()
-    cur.execute("SELECT parcel_id, prediction FROM classification_at WHERE model_id = %s AND parcel_id in (%s)" % (db_modelId, checkIds(parcel_ids)))
+
     try:
-        classification_db_data = cur.fetchall()
+        pd_fr = geodb.get_collection_pg(
+            collection='classification_at',
+            select="parcel_id, prediction",
+            where="model_id = %s AND parcel_id in (%s)" % (db_modelId, checkIds(parcel_ids))
+        )
         logger.debug('Received data.')
-    except IndexError:
+        # return parcel_id and top three predictions
+        results_response = [
+            {
+                'parcel_id': row[1],
+                'classification_results': [
+                    json.loads(row[2].replace("'", '"'))[0],
+                    json.loads(row[2].replace("'", '"'))[1],
+                    json.loads(row[2].replace("'", '"'))[2]
+                ]
+            } for row in pd_fr.itertuples()
+        ]
+        return jsonify(results_response)
+
+    except Exception as e:
         return Response(
             json.dumps({
-                'error': 'no such parcels'
+                'error': str(e)
             }),
             content_type='application/json',
             status=404
         )
     finally:
-        conn.close()
         logger.debug('Connection closed.')
-    # return parcel_id and top three predictions
-    results_response = [{'parcel_id': result[0], 'classification_results': [result[1][0], result[1][1], result[1][2]]} for result in classification_db_data]
     return jsonify(results_response)
 
 

@@ -30,3 +30,17 @@ LPvis 🕺
 ## Important
 
 The current backend implementation requires a Euro Data Cube service for NDVI timestacks and Euro Data Cube - geoDB (based on PostGIS database) to handle LPIS/IACS as well as predictions vector data!
+
+In order to run the app as in demo, you should supply following ENV variables to the Docker container:
+    # geodb credentials as listed from https://hub.eox.at
+    GEODB_API_SERVER_URL=
+    GEODB_AUTH_CLIENT_ID=
+    GEODB_AUTH_CLIENT_SECRET=
+    GEODB_AUTH_AUD=
+    GEODB_API_SERVER_PORT=
+    GEODB_AUTH_DOMAIN=
+    # sentinel-hub credentials
+    SH_CLIENT_ID=
+    SH_CLIENT_SECRET=
+    # model_id for used classification in DB query
+    GEODB_MODEL_ID=
