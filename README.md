@@ -33,7 +33,7 @@ LPvis 🕺
 
 The current backend implementation requires EDC service subscriptions to retrieve NDVI timestacks and to handle LPIS/IACS data as well as Crop-Type predictions.
 
-In order to run the app as in the demo, the data in EDC GeoDB has to be prepared and the following environment variables have to be set in Docker container:
+In order to run the app as in the demo, data has to be prepared in database and the following environment variables have to be set in Docker container:
 ```
 # for EDC Sentinel Hub
 SH_CLIENT_ID=
