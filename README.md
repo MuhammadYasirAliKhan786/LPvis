@@ -9,7 +9,7 @@ LPvis 🕺
 
 [demo project](https://github.com/EOX-A/LPvis) with the goal to extend the capabilities of the (UI only) prototype with concrete backend functionality:
 
-- connect to [EDC SentinelHub](https://eurodatacube.com/marketplace?group=Euro%20Data%20Cube) service to retrieve NDVI timestacks for a concrete LPIS parcel
+- connect to [EDC Sentinel Hub](https://eurodatacube.com/marketplace?group=Euro%20Data%20Cube) service to retrieve NDVI timestacks for a concrete LPIS parcel
 
 - apply a trained Crop-Type classification ML as derived via [EDC LPIS Use-case](https://eurodatacube.com/marketplace/notebooks/contributions/EDC_Usecase-LPIS_Crop-Type-Classification.ipynb) on agricultural parcels within a small sample region in Austria
 
