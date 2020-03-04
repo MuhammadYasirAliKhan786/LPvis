@@ -45,6 +45,6 @@ GEODB_AUTH_CLIENT_SECRET=
 GEODB_AUTH_AUD=
 GEODB_API_SERVER_PORT=
 GEODB_AUTH_DOMAIN=
-# for Crop-Type model
-use GEODB_MODEL_ID=1
+# for Crop-Type model to use, e.g. 1
+GEODB_MODEL_ID
 ```
