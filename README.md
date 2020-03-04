@@ -9,9 +9,11 @@ LPvis 🕺
 
 [demo project](https://github.com/EOX-A/LPvis) with the goal to extend the capabilities of the (UI only) prototype with concrete backend functionality:
 
-- connect to [Euro Data Cube Sentinel-Hub Service](https://hub.eox.at/marketplace?group=Euro%20Data%20Cube) to retrieve NDVI timestacks for a concrete LPIS parcel
+- connect to [EDC SentinelHub](https://eurodatacube.com/marketplace?group=Euro%20Data%20Cube) service to retrieve NDVI timestacks for a concrete LPIS parcel
 
-- use a trained Crop-Type classification ML (details to follow) to visualize "declaration" vs "classification result" for LPIS parcels
+- apply a trained Crop-Type classification ML as derived via [EDC LPIS Use-case](https://eurodatacube.com/marketplace/notebooks/contributions/EDC_Usecase-LPIS_Crop-Type-Classification.ipynb) on agricultural parcels within a small sample region in Austria
+
+- use Crop-Type predictions as stored in [EDC GeoDB](https://eurodatacube.com/marketplace/services/eurodatacube-geodb) to visualize "declaration" vs "classification result" for LPIS parcels
 
 ![Confusion Matrix](media/confusion_matrix.jpg)
 
@@ -29,18 +31,20 @@ LPvis 🕺
 
 ## Important
 
-The current backend implementation requires a Euro Data Cube service for NDVI timestacks and Euro Data Cube - geoDB (based on PostGIS database) to handle LPIS/IACS as well as predictions vector data!
+The current backend implementation requires EDC service subscriptions to retrieve NDVI timestacks and to handle LPIS/IACS data as well as Crop-Type predictions.
 
-In order to run the app as in demo, you should supply following ENV variables to the Docker container:
-    # geodb credentials as listed from https://hub.eox.at
-    GEODB_API_SERVER_URL=
-    GEODB_AUTH_CLIENT_ID=
-    GEODB_AUTH_CLIENT_SECRET=
-    GEODB_AUTH_AUD=
-    GEODB_API_SERVER_PORT=
-    GEODB_AUTH_DOMAIN=
-    # sentinel-hub credentials
-    SH_CLIENT_ID=
-    SH_CLIENT_SECRET=
-    # model_id for used classification in DB query
-    GEODB_MODEL_ID=
+In order to run the app as in the demo, the following environment variables have to be applied to the Docker container:
+```
+# for EDC Sentinel Hub
+SH_CLIENT_ID=
+SH_CLIENT_SECRET=
+# for EDC GeoDB
+GEODB_API_SERVER_URL=
+GEODB_AUTH_CLIENT_ID=
+GEODB_AUTH_CLIENT_SECRET=
+GEODB_AUTH_AUD=
+GEODB_API_SERVER_PORT=
+GEODB_AUTH_DOMAIN=
+# for Crop-Type model
+use GEODB_MODEL_ID=1
+```
