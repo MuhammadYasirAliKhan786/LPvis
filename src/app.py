@@ -10,6 +10,8 @@ from . import VERSION
 from flask import Flask, escape, request, jsonify, json, Response
 from prometheus_flask_exporter import PrometheusMetrics
 from xcube_geodb.core.geodb import GeoDBClient
+import geopandas as gpd
+import pandas as pd
 
 app = Flask(__name__, static_url_path='')
 geodb = GeoDBClient()
@@ -78,10 +80,10 @@ INSTANCE_ID = None
 
 
 def checkIds(parcel_ids):
-    # coerce IDS to integers and create a comma separated string for IN DB query
+    # coerce IDS to integers and create a list
     if isinstance(parcel_ids, int):
         return str(parcel_ids)
-    return ','.join(map(str, [int(i) for i in parcel_ids]))
+    return [str(int(i))for i in parcel_ids]
 
 
 def refresh_token(session):
@@ -115,15 +117,13 @@ def get_instance_id(session):
 def get_timestack():
     global INSTANCE_ID
     wkt = None
-
     try:
-        pd_fr = geodb.get_collection_pg(
+        pd_fr = geodb.get_collection(
             collection='lpis_at',
-            select="ST_AsText(geometry)",
-            where="raba_pid = %s AND d_od BETWEEN '2018-01-01' AND '2018-12-31'" % int(request.args['parcel_id'])
+            query="raba_pid=eq.%s&d_od.gte.2018-01-01&d_od.lte.2018-12-31" % int(request.args['parcel_id'])
         )
         logger.debug('Received data.')
-        wkt = pd_fr.iloc[0, 0]
+        wkt = pd_fr.iloc[0].geometry.wkt
     except Exception as e:
         return Response(
             json.dumps({
@@ -190,24 +190,27 @@ def predictions():
             return Response('No "parcel_ids" attribute found', status=400, mimetype='application/json')
     if (not parcel_ids):
         return Response('"parcel_ids" attribute value is empty', status=400, mimetype='application/json')
-
     try:
-        pd_fr = geodb.get_collection_pg(
-            collection='classification_at',
-            select="parcel_id, prediction",
-            where="model_id = %s AND parcel_id in (%s)" % (db_modelId, checkIds(parcel_ids))
-        )
+        ids = checkIds(parcel_ids)
+        pds = []
+        chunks = [ids[x:x + 300] for x in range(0, len(ids), 300)]
+        for chunk in chunks:
+            pds.append(geodb.get_collection(
+                collection='classification_at',
+                query="model_id.eq.%s&parcel_id=in.(%s)" % (db_modelId, ",".join(chunk))
+            ))
+        rdf = gpd.GeoDataFrame(pd.concat(pds, ignore_index=True))
         logger.debug('Received data.')
         # return parcel_id and top three predictions
         results_response = [
             {
-                'parcel_id': row[1],
+                'parcel_id': row.parcel_id,
                 'classification_results': [
-                    json.loads(row[2].replace("'", '"'))[0],
-                    json.loads(row[2].replace("'", '"'))[1],
-                    json.loads(row[2].replace("'", '"'))[2]
+                    json.loads(row.prediction.replace("'", '"'))[0],
+                    json.loads(row.prediction.replace("'", '"'))[1],
+                    json.loads(row.prediction.replace("'", '"'))[2]
                 ]
-            } for row in pd_fr.itertuples()
+            } for row in rdf.itertuples()
         ]
         return jsonify(results_response)
 
