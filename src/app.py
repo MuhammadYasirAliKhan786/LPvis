@@ -12,6 +12,7 @@ from prometheus_flask_exporter import PrometheusMetrics
 from xcube_geodb.core.geodb import GeoDBClient
 import geopandas as gpd
 import pandas as pd
+import multiprocessing as mp
 
 app = Flask(__name__, static_url_path='')
 geodb = GeoDBClient()
@@ -175,6 +176,14 @@ def get_timestack():
     )
 
 
+def fetch_predictions(client, model_id, parcel_ids):
+    gp_df = client.get_collection(
+        collection='classification_at',
+        query="model_id.eq.%s&parcel_id=in.(%s)" % (model_id, ",".join(parcel_ids))
+    )
+    return gp_df
+
+
 @app.route('/predictions', methods=['GET', 'POST'])
 def predictions():
     parcel_ids = {}
@@ -193,13 +202,11 @@ def predictions():
     try:
         ids = checkIds(parcel_ids)
         pds = []
+        # chunk size set to 300 so it does not exceed the characters limit in postgrest api request
         chunks = [ids[x:x + 300] for x in range(0, len(ids), 300)]
-        for chunk in chunks:
-            pds.append(geodb.get_collection(
-                collection='classification_at',
-                query="model_id.eq.%s&parcel_id=in.(%s)" % (db_modelId, ",".join(chunk))
-            ))
-        rdf = gpd.GeoDataFrame(pd.concat(pds, ignore_index=True))
+        starmap_input = [[geodb, db_modelId, chunk] for chunk in chunks]
+        results = mp.Pool(6).starmap(fetch_predictions, starmap_input)
+        rdf = gpd.GeoDataFrame(pd.concat(results, ignore_index=True))
         logger.debug('Received data.')
         # return parcel_id and top three predictions
         results_response = [
