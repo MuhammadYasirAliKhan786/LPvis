@@ -121,7 +121,8 @@ def get_timestack():
     try:
         pd_fr = geodb.get_collection(
             collection='lpis_at',
-            query="raba_pid=eq.%s&d_od.gte.2018-01-01&d_od.lte.2018-12-31" % int(request.args['parcel_id'])
+            query="raba_pid=eq.%s&d_od.gte.2018-01-01&d_od.lte.2018-12-31" % int(request.args['parcel_id']),
+            namespace='geodb_a659367d-04c2-44ff-8563-cb488da309e4'
         )
         logger.debug('Received data.')
         wkt = pd_fr.iloc[0].geometry.wkt
@@ -179,7 +180,8 @@ def get_timestack():
 def fetch_predictions(client, model_id, parcel_ids):
     gp_df = client.get_collection(
         collection='classification_at',
-        query="model_id.eq.%s&parcel_id=in.(%s)" % (model_id, ",".join(parcel_ids))
+        query="model_id.eq.%s&parcel_id=in.(%s)" % (model_id, ",".join(parcel_ids)),
+        namespace='geodb_a659367d-04c2-44ff-8563-cb488da309e4'
     )
     return gp_df
 
