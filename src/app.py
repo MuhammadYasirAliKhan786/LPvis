@@ -207,7 +207,8 @@ def predictions():
         # chunk size set to 300 so it does not exceed the characters limit in postgrest api request
         chunks = [ids[x:x + 300] for x in range(0, len(ids), 300)]
         starmap_input = [[geodb, db_modelId, chunk] for chunk in chunks]
-        results = mp.Pool(6).starmap(fetch_predictions, starmap_input)
+        with mp.Pool(6) as pool:
+            results = pool.starmap(fetch_predictions, starmap_input)
         rdf = gpd.GeoDataFrame(pd.concat(results, ignore_index=True))
         logger.debug('Received data.')
         # return parcel_id and top three predictions
