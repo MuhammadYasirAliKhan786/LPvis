@@ -17,7 +17,7 @@ ENV PATH=/miniconda/bin:${PATH}
 RUN conda update -y conda
 RUN conda config --add channels conda-forge
 
-RUN conda install --freeze-installed xcube_geodb
+RUN conda install --freeze-installed xcube_geodb==0.1.6
 RUN conda install requests requests-oauthlib flask oauthlib
 
 RUN conda install pip \
