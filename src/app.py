@@ -225,6 +225,7 @@ def predictions():
         return jsonify(results_response)
 
     except Exception as e:
+        logger.exception(e)
         return Response(
             json.dumps({
                 'error': str(e)
